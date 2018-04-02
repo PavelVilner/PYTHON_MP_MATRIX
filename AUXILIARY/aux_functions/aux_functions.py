@@ -1,14 +1,14 @@
 import gmpy2 as gm
 from gmpy2 import const_pi as pi, mpfr as mpr, mpc
-from mpmath import *
-import numpy as np
 from copy import deepcopy
 from aux_inner_functions import is_lowest_level, is_dict_callable, is_list_callable
 from numpy import double
 
 
 class NUMERICAL_TYPES:
-    scalar_types = (int, float, mp.mpf, mp.mpc, double)    
+    @staticmethod
+    def scalar_types():
+        return (int, float, type(mpr(1)), type(mpc(1,1)), double)
     
 def is_number(local_in):
     '''
@@ -517,16 +517,16 @@ def deg(local_in):
         Converts an input from radianes to degrees
     '''
     if is_scalar(local_in):
-        return local_in / pi() * mpr("180")
+        return local_in / pi() * mpr(180)
     else:
-        return apply_to_iterable(local_in, lambda x: x / pi() * mpr("180"))
+        return apply_to_iterable(local_in, lambda x: x / pi() * mpr(180))
 
 def rad(local_in):
     '''
         Converts an input from degrees to radianes
     '''
     if is_scalar(local_in):
-        return local_in * pi() / mpr("180")
+        return local_in * pi() / mpr(180)
     else:
         raise NotImplemented()
 
@@ -535,7 +535,7 @@ def dB20(local_in):
         Converts an input absolute value into dB20 form
     '''
     if is_scalar(local_in):
-        return mpr("20") * gm.log10(abs(local_in))
+        return mpr(20) * gm.log10(abs(local_in))
     else:
         raise NotImplemented()
 
@@ -544,7 +544,7 @@ def dB10(local_in):
         Converts an input absolute value into dB10 form
     '''
     if is_scalar(local_in):
-        return mpr("10") * gm.log10(abs(local_in))
+        return mpr(10) * gm.log10(abs(local_in))
     else:
         raise NotImplemented()
     
@@ -569,7 +569,6 @@ def make_N_dim_list(*args):
         raise E
     
 def mpr_to_str(num, symbols):
-    raise NotImplementedError
     num = num.real
     if symbols <= 3:
         raise ValueError("The value of mp.mpf can't be reproduced with less than 3 symbols!")
@@ -577,18 +576,18 @@ def mpr_to_str(num, symbols):
         num_sign = " "
     else:
         num_sign = "-"
-    if num ==mpr("0"):
+    if num ==mpr(0):
         return num_sign + "0." + "0"*(symbols-3)
     num_char = gm.floor(gm.log10(abs(num)))
-    num_val = abs(num) / (mpr("10")**num_char)
+    num_val = abs(num) / (mpr(10)**num_char)
     num_char_str = str(int(num_char))
     symbols_left = symbols - 4 - len(num_char_str)
-    val_string = mp.nstr(num_val, symbols_left+1, strip_zeros=False, min_fixed=-gm.inf, max_fixed=inf)
+    val_string = ("{0:-1.%dNf}" % (symbols_left+1)).format(num_val)
     if val_string[1] != ".":
-        num_val /= mpr("10")
+        num_val /= mpr(10)
         num_char += 1
         num_char_str = str(int(num_char))
-        val_string = mp.nstr(num_val, symbols_left+1, strip_zeros=False, min_fixed=-inf, max_fixed=inf)
+        val_string = ("{0:-1.%dNf}" % (symbols_left+1)).format(num_val)
     if len(val_string) + 2 + len(num_char_str) < symbols:
         val_string += "0"
     elif len(val_string) + 2 + len(num_char_str) > symbols:
@@ -598,19 +597,19 @@ def mpr_to_str(num, symbols):
     return num_sign + val_string + "e" + num_char_str
 
 def mpi_to_str(num, symbols):
-    local_str = mpr_to_str(num.real, symbols-1)
+    local_str = mpr_to_str(num.real, symbols)
     return local_str[0]+"j"+local_str[1:]
 
 def mpc_to_str(num, symbols):
     if is_even(symbols) or symbols < 7:
         raise ValueError("mpc_to_str requires an odd amount of symbols more than 5 to operate!")
-    abs_re_str = mpr_to_str(num, int((symbols-5)/2+1))[1:]
-    abs_im_str = mpi_to_str(num, int((symbols-5)/2+1))[1:]
-    if num.real >= mpr("0"):
+    abs_re_str = mpr_to_str(abs(num.real), int((symbols-5)/2+1))[1:]
+    abs_im_str = mpr_to_str(abs(num.imag), int((symbols-5)/2+1))[1:]
+    if num.real >= mpr(0):
         num_re_sign = " "
     else:
         num_re_sign = "-"
-    if num.imag >= mpr("0"):
+    if num.imag >= mpr(0):
         num_im_sign = "+"
     else:
         num_im_sign = "-"
@@ -645,6 +644,15 @@ def get_index(ind, length):
     for n in local_iter:
         aux.append(n % length)
     return aux
+
+def real(num):
+    return num.real()
+
+def imag(num):
+    return num.imag()
+
+def conj(num):
+    return num.real - mpc(0,1)*num.imag
     
 class color_range:
     

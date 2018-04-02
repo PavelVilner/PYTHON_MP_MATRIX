@@ -1,9 +1,11 @@
-
-from mpmath import *
-import numpy as np
+from mpmath import matrix as mp_matrix
+from numpy import matrix as np_matrix
+import gmpy2 as gm
+from gmpy2 import mpfr as mpr, mpc
 from copy import copy as local_copy
-from aux_functions import is_even, NUMERICAL_TYPES, mpc_to_str, mpf_to_str, mpfi_to_str, get_index
+from aux_functions import is_even, NUMERICAL_TYPES, get_index, mpr_to_str, mpi_to_str, mpc_to_str, real, imag, conj
 from operator import floordiv
+from random import random
 
 
 class submatrix:
@@ -35,12 +37,12 @@ class my_matrix:
         self.__N_rows = 0
         self.__N_cols = 0
         if args:
-            if isinstance(args[0], mp.matrix):
+            if isinstance(args[0], mp_matrix):
                 self.__N_rows = args[0].rows
                 self.__N_cols = args[0].cols
                 for r in self.rows():
                     for c in self.cols():
-                        if args[0][r,c] != mp.mpf("0"):
+                        if args[0][r,c] != mpr("0"):
                             self.__data[(r,c)] = args[0][r,c]
             elif isinstance(args[0], list):
                 try:
@@ -49,7 +51,7 @@ class my_matrix:
                     self.__data = {}
                     for r in self.rows():
                         for c in self.cols():
-                            if args[0][r][c] != mp.mpf("0"):
+                            if args[0][r][c] != mpr("0"):
                                 self.__data[(r,c)] = args[0][r][c]
                 except:
                     raise ValueError("Wrong list format for my_matrix constructor!")                                
@@ -57,12 +59,12 @@ class my_matrix:
                 self.__N_rows = args[0]
                 self.__N_cols = args[1]
                 self.__data = {}
-            elif isinstance(args[0], mp.matrix):
+            elif isinstance(args[0], mp_matrix):
                 self.__N_rows = args[0].rows
                 self.__N_cols = args[0].cols
                 for r in range(args[0].rows):
                     for c in range(args[0].cols):
-                        if args[0][r,c] != mp.mpf("0"):
+                        if args[0][r,c] != mpr("0"):
                             self.__data[(r,c)] = args[0][r,c]
             else:
                 raise ValueError("Wrong inputs to my_matrix.__init__!")
@@ -71,10 +73,10 @@ class my_matrix:
         
     def __str__(self):
         if self.is_Real():
-            num_to_str = lambda x: mpf_to_str(x, self.__print_digits)
+            num_to_str = lambda x: mpr_to_str(x, self.__print_digits)
             n_symbols = self.__print_digits
         elif self.is_Imag():
-            num_to_str = lambda x: mpfi_to_str(x, self.__print_digits+1)
+            num_to_str = lambda x: mpi_to_str(x, self.__print_digits+1)
             n_symbols = self.__print_digits+1
         else:
             num_to_str = lambda x: mpc_to_str(x, 2*self.__print_digits+5)
@@ -113,7 +115,7 @@ class my_matrix:
         for keys in self.__data:
             r = keys[0]
             c = keys[1]
-            M.__data[(c,r)] = mp.conj(self.__data[keys])
+            M.__data[(c,r)] = conj(self.__data[keys])
         M.__N_rows = self.__N_cols
         M.__N_cols = self.__N_rows
         return M
@@ -137,7 +139,7 @@ class my_matrix:
         tol = self.get_tol(*args)
         for r in self.rows():
             for c in self.cols():
-                if r != c and mp.fabs(self[r,c]) > tol:
+                if r != c and abs(self[r,c]) > tol:
                     return False
         return True
     
@@ -147,7 +149,7 @@ class my_matrix:
         tol = self.get_tol(*args)
         for r in self.rows():
             for c in range(r, self.__N_cols):
-                if mp.fabs(self[r,c] - self[c,r]) > tol:
+                if abs(self[r,c] - self[c,r]) > tol:
                     return False
         return True
                     
@@ -157,7 +159,7 @@ class my_matrix:
             return False
         for r in self.rows():
             for c in range(r, self.__N_cols):
-                if mp.fabs(self[r,c] - mp.conj(self[c,r])) > tol:
+                if abs(self[r,c] - conj(self[c,r])) > tol:
                     return False
         return True
     
@@ -165,7 +167,7 @@ class my_matrix:
         tol = self.get_tol(*args)
         if self.is_Diagonal():
             for r in self.rows():
-                if mp.fabs(mp.conj(self[r,r])*self[r,r] - mp.mpf("1")) > tol:
+                if abs(conj(self[r,r])*self[r,r] - mpr("1")) > tol:
                     return False
             return True
         else:
@@ -176,14 +178,14 @@ class my_matrix:
     def is_Real(self, *args):
         tol = self.get_tol(*args)
         for keys in self.__data:
-            if mp.fabs(mp.im(self.__data[keys])) > tol:
+            if abs(self.__data[keys].imag) > tol:
                 return False
         return True
     
     def is_Imag(self, *args):
         tol = self.get_tol(*args)
         for keys in self.__data:
-            if mp.fabs(mp.re(self.__data[keys])) > tol:
+            if abs(self.__data[keys].real) > tol:
                 return False
         return True
         
@@ -249,7 +251,7 @@ class my_matrix:
         for c in M.cols():
             stop_flag = False
             for r in M.rows():
-                if mp.fabs(M[r,c]) > tol:
+                if abs(M[r,c]) > tol:
                     stop_flag = True
                     break
             if not stop_flag:
@@ -292,10 +294,10 @@ class my_matrix:
         if self.is_Diagonal():
             M = local_copy(self)
             for r in self.rows():
-                if mp.fabs(M[r,r]) < tol:
+                if abs(M[r,r]) < tol:
                     raise RuntimeError("The matrix is singular to the working precision!")
                 else:
-                    M[r,r] = mp.mpf("1") / M[r,r]
+                    M[r,r] = mpr("1") / M[r,r]
             return M 
         else:
             _, Mi = self.codiagonalize(self.to_I(), *args)
@@ -331,7 +333,7 @@ class my_matrix:
                 return M
             else:
                 raise ValueError("Matrix dimensions must agree!")
-        elif isinstance(other, NUMERICAL_TYPES.scalar_types):
+        elif isinstance(other, NUMERICAL_TYPES.scalar_types()):
             M = local_copy(self)
             for keys in self.__data:
                 M.__data[keys] += other 
@@ -354,7 +356,7 @@ class my_matrix:
                 return M
             else:
                 raise ValueError("Matrix dimensions must agree!")
-        elif isinstance(other, NUMERICAL_TYPES.scalar_types):
+        elif isinstance(other, NUMERICAL_TYPES.scalar_types()):
             M = local_copy(self)
             for keys in self.__data:
                 M.__data[keys] -= other 
@@ -375,7 +377,7 @@ class my_matrix:
         if isinstance(other, my_matrix):
             if self.__N_cols == other.__N_rows:
                 if self.__N_rows == 1 and other.__N_cols == 1:
-                    aux = mp.mpf("0")
+                    aux = mpr("0")
                     for keys in self.__data:
                         try:
                             aux += self.__data[keys] * other.__data[(keys[1], keys[0])]
@@ -385,35 +387,35 @@ class my_matrix:
                 M = my_matrix(self.__N_rows, other.__N_cols)
                 for r in self.rows():
                     for c in range(other.__N_cols):
-                        aux = mp.mpf("0")
+                        aux = mpr("0")
                         for k in self.cols():
                             try:
                                 aux += self.__data[(r,k)] * other.__data[(k,c)]
                             except KeyError:
                                 pass
-                        if aux != mp.mpf("0"):
+                        if aux != mpr("0"):
                             M.__data[(r,c)] = aux
                 return M
             else:
                 raise ValueError("Matrix dimensions must agree!")
-        elif isinstance(other, NUMERICAL_TYPES.scalar_types):
+        elif isinstance(other, NUMERICAL_TYPES.scalar_types()):
             M = local_copy(self)
             for keys in M.__data:
-                M.__data[keys] *= other 
+                M.__data[keys] *= other
             return M
         else:
             raise ValueError("Wrong input to __add__!")
         
     def __rmul__(self, other):
-        if isinstance(other, NUMERICAL_TYPES.scalar_types):
+        if isinstance(other, NUMERICAL_TYPES.scalar_types()):
             return self * other
         else:
             raise NotImplementedError
         
     def __truediv__(self, other):
-        if isinstance(other, NUMERICAL_TYPES.scalar_types):
+        if isinstance(other, NUMERICAL_TYPES.scalar_types()):
             M = local_copy(self)
-            if mp.fabs(other) < self.get_tol():
+            if abs(other) < self.get_tol():
                 raise ValueError("Attempting a division by zero!")
             for keys in M.__data:
                 M.__data[keys] /= other 
@@ -441,7 +443,7 @@ class my_matrix:
             if (rows_list[0], cols_list[0]) in self.__data:
                 return self.__data[(rows_list[0], cols_list[0])]
             else:
-                return mp.mpf("0")
+                return mpr("0")
             return self[rows_list[0], cols_list[0]]
         M = my_matrix(len(rows_list), len(cols_list))
         for r in range(len(rows_list)):
@@ -454,8 +456,8 @@ class my_matrix:
     
     def __setitem__(self, keys, value):
         rows_list, cols_list = self.__keys_to_indexes(keys)
-        if isinstance(value, NUMERICAL_TYPES.scalar_types):
-            if value != mp.mpf("0"):
+        if isinstance(value, NUMERICAL_TYPES.scalar_types()):
+            if value != mpr("0"):
                 for r in rows_list:
                     for c in cols_list:
                         self.__data[(r,c)] = value
@@ -516,10 +518,10 @@ class my_matrix:
     
     def __eq__(self, other):
         tol = self.get_tol()
-        if isinstance(other, NUMERICAL_TYPES.scalar_types):
+        if isinstance(other, NUMERICAL_TYPES.scalar_types()):
             for r in self.rows():
                 for c in self.cols():
-                    if mp.fabs(self[r,c] - other) > tol:
+                    if abs(self[r,c] - other) > tol:
                         return False
             return True
         if not isinstance(other, my_matrix):
@@ -528,7 +530,7 @@ class my_matrix:
             return False
         for r in self.rows():
             for c in self.cols():
-                if mp.fabs(self[r,c] - other[r,c]) > tol:
+                if abs(self[r,c] - other[r,c]) > tol:
                     return False
         return True
     
@@ -536,30 +538,30 @@ class my_matrix:
         return self == other
     
     def sqrt(self):
-        return local_copy(self).apply(mp.sqrt)
+        return local_copy(self).apply(gm.sqrt)
     
     def abs(self):
-        return local_copy(self).apply(mp.fabs)
+        return local_copy(self).apply(abs)
     
     def conj(self):
-        return local_copy(self).apply(mp.conj)
+        return local_copy(self).apply(conj)
     
     def angle(self):
-        return local_copy(self).apply(mp.phase)
+        return local_copy(self).apply(gm.phase)
     
     def phase(self):
-        return local_copy(self).apply(mp.phase)
+        return local_copy(self).apply(gm.phase)
     
     def real(self):
-        return local_copy(self).apply(mp.re)
+        return local_copy(self).apply(real)
     
     def imag(self):
-        return local_copy(self).apply(mp.im)
+        return local_copy(self).apply(imag)
     
     def det(self):
         if not self.is_Square():
             raise RuntimeError("Determinant is not defined for not-square matrices!")
-        aux = mp.mpf("0")
+        aux = mpr("0")
         if self.__N_rows == 2 and self.__N_cols == 2:
             return self[0,0]*self[1,1] - self[1,0]*self[0,1]
         for c in self.cols():
@@ -572,28 +574,28 @@ class my_matrix:
         return aux                      
     
     def max_abs(self):
-        max_val = mp.mpf("0")
+        max_val = mpr("0")
         for keys in self.__data:
-            if mp.fabs(self.__data[keys]) > max_val:
-                max_val = mp.fabs(self.__data[keys])
+            if abs(self.__data[keys]) > max_val:
+                max_val = abs(self.__data[keys])
         return max_val
     
     def min_abs(self):
-        min_val = mp.inf
+        min_val = gm.inf
         for r in self.rows():
             for c in self.cols():
-                if mp.fabs(self[r,c]) < min_val:
-                    min_val = mp.fabs(self[r,c])
+                if abs(self[r,c]) < min_val:
+                    min_val = abs(self[r,c])
         return min_val
 
     def to_ndarray(self):
         pass
     
     def to_np_matrix(self):
-        return np.matrix(self.apply(float).to_list())
+        return np_matrix(self.apply(float).to_list())
     
     def to_mp_matrix(self):
-        return mp.matrix(self.to_list())
+        return mp_matrix(self.to_list())
     
     def to_list(self, **kwargs):
         aux = []
@@ -615,34 +617,54 @@ class my_matrix:
         tol = self.get_tol(*args)
         for r in self.rows():
             for c in range(r, self.__N_cols):
-                aux1 = self[r,c]
-                aux2 = self[c,r]
-                val = (aux1 + aux2) / mp.mpf("2")
-                if mp.fabs(val) < tol:
-                    if (r,c) in self.__data:
-                        del self.__data[r,c]
-                    if (c,r) in self.__data:
-                        del self.__data[c,r]    
+                try:
+                    aux1 = self.__data[(r,c)]
+                except KeyError:
+                    aux1 = 0
+                try:
+                    aux2 = self.__data[(c,r)]
+                except KeyError:
+                    aux2 = 0
+                val = (aux1 + aux2) / mpr("2")
+                if abs(val) < tol:
+                    try:
+                        del self.__data[(r,c)]
+                    except KeyError:
+                        pass
+                    try:
+                        del self.__data[(c,r)]
+                    except KeyError:
+                        pass
                 else:
-                    self[r,c] = val
-                    self[c,r] = val
+                    self.__data[(r,c)] = val
+                    self.__data[(c,r)] = val
         return local_copy(self)
     
     def enforce_Hermiticity(self, *args):
         tol = self.get_tol(*args)
         for r in self.rows():
             for c in range(r, self.__N_cols):
-                aux1 = self[r,c]
-                aux2 = self[c,r]
-                val = (aux1 + mp.conj(aux2)) / mp.mpf("2")
-                if mp.fabs(val) < tol:
-                    if (r,c) in self.__data:
-                        del self.__data[r,c]
-                    if (c,r) in self.__data:
-                        del self.__data[c,r]    
+                try:
+                    aux1 = self.__data[(r, c)]
+                except KeyError:
+                    aux1 = 0
+                try:
+                    aux2 = self.__data[(c, r)]
+                except KeyError:
+                    aux2 = 0
+                val = (aux1 + conj(aux2)) / mpr("2")
+                if abs(val) < tol:
+                    try:
+                        del self.__data[(r, c)]
+                    except KeyError:
+                        pass
+                    try:
+                        del self.__data[(c, r)]
+                    except KeyError:
+                        pass
                 else:
-                    self[r,c] = val
-                    self[c,r] = mp.conj(val)
+                    self.__data[(r, c)] = val
+                    self.__data[(c, r)] = conj(val)
         return local_copy(self)
     
     def enforce_Unitarity(self, *args):
@@ -650,53 +672,55 @@ class my_matrix:
         if self.has_zero_cols(*args):
             raise RuntimeError("Enforcing unitarity failed, the matrix columns don't constitute a complete basis!")
     
-    def get_Hessenberg_form(self):
-        i = mp.mpc("0","1")
+    def get_Hessenberg_form(self, calculate_Hessenberg_form = True, calculate_Householder_matrix = False):
+        i = mpc(0,1)
         if not self.is_Square():
             raise RuntimeError("Can't force a non-square matrix into a Hessenberg form!")
         if self.__N_cols == 2:
             raise RuntimeError("Can't force a 2x2 matrix into a Hessenberg form!")
         M = local_copy(self)
         I = M.to_I()
+        P = local_copy(I)
         for c in range(M.__N_cols-2):
             v = M["c",c]
             v_tar = my_matrix(M.__N_rows,1)
-            for loc_c in range(c+1):
+            for loc_r in range(c+1):
                 try:
-                    v_tar.__data[(loc_c,0)] = v.__data[(loc_c,0)]
+                    v_tar.__data[(loc_r,0)] = v.__data[(loc_r,0)]
                 except KeyError:
                     pass
-            aux = mp.mpf("0")
-            for loc_c in range(c+1,M.__N_rows):
+            aux = mpr(0)
+            for loc_r in range(c+1,M.__N_rows):
                 try:
-                    aux += mp.conj(v.__data[(loc_c,0)])*v.__data[(loc_c,0)]
+                    aux += conj(v.__data[(loc_r,0)]) * v.__data[(loc_r,0)]
                 except KeyError:
                     pass
-            v_tar.__data[(c+1,0)] = mp.sqrt(v["r",c+1:].H()*v["r",c+1:])*mp.exp(i*mp.phase(v[c+1,0]))
+            v_tar.__data[(c+1,0)] = gm.sqrt(aux)*gm.exp(i*gm.phase(v[c+1,0]))
             u = v - v_tar
-            aux = mp.mpf("0")
+            aux = mpr(0)
             for keys in u.__data:
-                aux += mp.conj(u.__data[keys]) * u.__data[keys]
-            aux = mp.sqrt(aux)
+                aux += conj(u.__data[keys]) * u.__data[keys]
+            aux = gm.sqrt(aux)
             for keys in u.__data:
                 u.__data[keys] = u.__data[keys] / aux
-            P = I.to_I()
-            for loc_c in range(c+1,P.__N_rows):
-                for loc_r in range(loc_c, P.__N_rows):
-                    if loc_r == loc_c:
-                        P.__data[(loc_r,loc_c)] = mp.mpf("1") - mp.mpf("2") * u.__data[(loc_r,0)] * mp.conj(u.__data[(loc_c,0)])
-                    else:
-                        P.__data[(loc_r,loc_c)] = - mp.mpf("2") * u.__data[(loc_r,0)] * mp.conj(u.__data[(loc_c,0)])
-                        P.__data[(loc_c,loc_r)] = - mp.mpf("2") * u.__data[(loc_c,0)] * mp.conj(u.__data[(loc_r,0)])
-            M = M - mp.mpf("2")*u*(u.H()*M)
-            M = M - mp.mpf("2")*(M*u)*u.H()
-        return M
+            if calculate_Householder_matrix:
+                P = P - mpr(2)*u*(u.H()*P)
+            if calculate_Hessenberg_form:
+                M = M - mpr(2)*u*(u.H()*M)
+        if calculate_Hessenberg_form and calculate_Householder_matrix:
+            return M, P
+        if calculate_Hessenberg_form and not calculate_Householder_matrix:
+            return M, None
+        if not calculate_Hessenberg_form and calculate_Householder_matrix:
+            return None, P
+        else:
+            return None, None
             
     def zero_to_tol(self, *args):
         tol = self.get_tol(*args)
         keys_to_del = []
         for keys in self.__data:
-            if mp.fabs(self.__data[keys]) < tol: 
+            if abs(self.__data[keys]) < tol: 
                     keys_to_del.append(keys)
         for keys in keys_to_del:
             self.__data.pop(keys)
@@ -706,19 +730,19 @@ class my_matrix:
         tol = self.get_tol(*args)
         keys_to_del = []
         for keys in self.__data:
-            if mp.fabs(self.__data[keys]) < tol: 
+            if abs(self.__data[keys]) < tol: 
                     keys_to_del.append(keys)
             else:
-                aux_re = mp.fabs(mp.re(self.__data[keys]))
-                aux_im = mp.fabs(mp.im(self.__data[keys]))
-                if mp.fabs(aux_re - mp.nint(aux_re)) < tol:
-                    aux_re = mp.nint(aux_re) * mp.sign(mp.re(self.__data[keys]))
-                if mp.fabs(aux_im - mp.nint(aux_im)) < tol:
-                    aux_im = mp.nint(aux_im) * mp.sign(mp.im(self.__data[keys]))
-                if aux_im == mp.mpf("0"):
-                    self.__data[keys] = mp.mpf(aux_re)
+                aux_re = abs(self.__data[keys].real)
+                aux_im = abs(self.__data[keys].imag)
+                if abs(aux_re - gm.round_away(aux_re)) < tol:
+                    aux_re = gm.round_away(aux_re) * gm.sign(self.__data[keys].real)
+                if abs(aux_im - gm.round_away(aux_im)) < tol:
+                    aux_im = gm.round_away(aux_im) * gm.sign(self.__data[keys].imag)
+                if aux_im == mpr(0):
+                    self.__data[keys] = mpr(aux_re)
                 else:
-                    self.__data[keys] = mp.mpc(aux_re, aux_im)
+                    self.__data[keys] = mpc(aux_re, aux_im)
         for keys in keys_to_del:
             self.__data.pop(keys)
         return local_copy(self)
@@ -737,10 +761,10 @@ class my_matrix:
         tol = self.get_tol(*args)
         for r1 in self.rows():
             aux = self["r",r1] * self["r",r1].H()
-            if mp.fabs(aux) <= tol:
+            if abs(aux) <= tol:
                 continue
             else:
-                self["r",r1] = self["r",r1] / mp.sqrt(aux) 
+                self["r",r1] = self["r",r1] / gm.sqrt(aux) 
             for r2 in range(r1+1, self.__N_rows):
                 self["r",r2] = self["r",r2] - (self["r",r1].conj()*self["r",r2].T())*self["r",r1]
         return local_copy(self)
@@ -749,10 +773,10 @@ class my_matrix:
         tol = self.get_tol(*args)
         for c1 in self.cols():
             aux = self["c",c1].H() * self["c",c1]
-            if mp.fabs(aux) <= tol:
+            if abs(aux) <= tol:
                 continue
             else:
-                self["c",c1] = self["c",c1] / mp.sqrt(aux) 
+                self["c",c1] = self["c",c1] / gm.sqrt(aux) 
             for c2 in range(c1+1, self.__N_cols):
                 self["c",c2] = self["c",c2] - (self["c",c1].H()*self["c",c2])*self["c",c1]
         return local_copy(self)
@@ -766,7 +790,7 @@ class my_matrix:
         break_flag = False
         for c in range(Ms.__N_cols):
             for r in range(c, Ms.__N_rows):
-                if mp.fabs(Ms[r,c]) > tol:
+                if abs(Ms[r,c]) > tol:
                     break_flag = True
                     break
             if break_flag:
@@ -781,7 +805,7 @@ class my_matrix:
         break_flag = False
         for c in range(Ms.__N_cols-1, -1, -1):
             for r in range(c, -1, -1):
-                if mp.fabs(Ms[r,c]) > tol:
+                if abs(Ms[r,c]) > tol:
                     break_flag = True
                     break
             if break_flag:
@@ -876,20 +900,24 @@ class my_matrix:
             
     @staticmethod
     def get_tol(*args):
-        current_dps = mp.dps
+        current_dps = int(gm.floor(gm.get_context().precision / 3.322))
         if current_dps <= 5:
-            local_tol = mp.mpf("1e-5")
+            local_tol = mpr(1e-5)
         elif my_matrix.__use_tol:
-            local_tol = mp.mpf("1e-" + str(current_dps - 5))
+            local_tol = mpr("1e-" + str(current_dps - 5))
         else:
-            local_tol = mp.mpf("0")
+            local_tol = mpr(0)
         if args:
-            if mp.mpf(args[0]) > local_tol:
-                    return mp.mpf(args[0])
+            if mpr(args[0]) > local_tol:
+                    return mpr(args[0])
             else:
-                raise RuntimeError("The requested tolerance is finer than the current MPMATH precision!")
+                raise RuntimeError("The requested tolerance is finer than the current gmpy2 context precision!")
         else:
             return local_tol
+
+    @staticmethod
+    def get_dps():
+        return int(gm.floor(gm.get_context().precision / 3.322))
 
     @staticmethod    
     def zeros(*args):
@@ -914,7 +942,7 @@ class my_matrix:
                 O = my_matrix()
                 for r in range(args[0]):
                     for c in range(args[1]):
-                        O.__data[(r,c)] = mp.mpf("1")
+                        O.__data[(r,c)] = mpr(1)
                 O.__N_rows = args[0]
                 O.__N_cols = args[1]
                 return O
@@ -927,7 +955,7 @@ class my_matrix:
         O = my_matrix(self.__N_rows, self.__N_cols)
         for r in self.rows():
             for c in self.cols():
-                O.__data[(r,c)] = mp.mpf("1")
+                O.__data[(r,c)] = mpr(1)
         return O
         
     @staticmethod
@@ -937,7 +965,7 @@ class my_matrix:
                 if len(args) == 1 or args[0] == args[1]:
                     O = my_matrix()
                     for r in range(args[0]):
-                        O.__data[(r,r)] = mp.mpf("1")
+                        O.__data[(r,r)] = mpr(1)
                     O.__N_rows = args[0]
                     O.__N_cols = args[0]
                     return O
@@ -953,7 +981,7 @@ class my_matrix:
             raise RuntimeError("Can't make a unit matrix out of a not square one!")
         O = my_matrix(self.__N_rows, self.__N_cols)
         for r in self.rows():
-            O.__data[(r,r)] = mp.mpf("1")
+            O.__data[(r,r)] = mpr(1)
         return O
         
     @staticmethod
@@ -963,7 +991,7 @@ class my_matrix:
                 O = my_matrix()
                 for r in range(args[0]):
                     for c in range(args[1]):
-                        O.__data[(r,c)] = mp.rand()
+                        O.__data[(r,c)] = mpr(random())
                 O.__N_rows = args[0]
                 O.__N_cols = args[1]
                 return O
@@ -976,18 +1004,17 @@ class my_matrix:
         M = my_matrix(self.__N_rows, self.__N_cols)
         for r in self.rows():
             for c in self.cols():
-                M[r,c] = mp.rand()
+                M[r,c] = mpr(random())
         return M
     
     @staticmethod    
     def crand(*args):
-        i = mp.mpc("0", "1")
         if args:
             try:
                 O = my_matrix()
                 for r in range(args[0]):
                     for c in range(args[1]):
-                        O.__data[(r,c)] = mp.rand() * mp.exp(i * mp.mpf("2") * mp.pi * mp.rand())
+                        O.__data[(r,c)] = mpc(random(), random())
                 O.__N_rows = args[0]
                 O.__N_cols = args[1]
                 return O
@@ -997,11 +1024,10 @@ class my_matrix:
             raise ValueError("Wrong matrix dimensions!")
         
     def to_crand(self):
-        i = mp.mpc("0", "1")
         M = my_matrix(self.__N_rows, self.__N_cols)
         for r in self.rows():
             for c in self.cols():
-                M[r,c] = mp.rand() * mp.exp(i * mp.mpf("2") * mp.pi * mp.rand())
+                M[r,c] = mpc(random(), random())
         return M
     
     @staticmethod
