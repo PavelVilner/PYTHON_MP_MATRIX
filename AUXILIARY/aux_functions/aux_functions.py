@@ -2,7 +2,7 @@ import gmpy2 as gm
 from gmpy2 import const_pi as pi, mpfr as mpr, mpc
 from copy import deepcopy
 from aux_inner_functions import is_lowest_level, is_dict_callable, is_list_callable
-from numpy import double
+# from numpy import double
 
 
 class NUMERICAL_TYPES:
@@ -583,6 +583,7 @@ def mpr_to_str(num, symbols):
     num_char_str = str(int(num_char))
     symbols_left = symbols - 4 - len(num_char_str)
     val_string = ("{0:-1.%dNf}" % (symbols_left+1)).format(num_val)
+    # val_string = 'q.qqqqqqqqqqqqqq'
     if val_string[1] != ".":
         num_val /= mpr(10)
         num_char += 1
@@ -595,6 +596,7 @@ def mpr_to_str(num, symbols):
     if symbols_left < 1:
         raise ValueError("Too few given symbols for the given value of mp.mpf!")
     return num_sign + val_string + "e" + num_char_str
+    # return 'qqq'
 
 def mpi_to_str(num, symbols):
     local_str = mpr_to_str(num.real, symbols)

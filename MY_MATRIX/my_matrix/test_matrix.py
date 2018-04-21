@@ -12,34 +12,38 @@ gmpy2.set_context(ctx)
 
 N = 5
 
-qqq = my_matrix.crand(N,N)
+qqq = my_matrix.rand(N,N)
 
-print(qqq.get_dps())
-
-qqq.set_print_digits(10)
+qqq[1,1] = mpc(1,1)
 
 print(qqq)
 
-
-pr = cProfile.Profile()
-pr.enable()
-
-qqq,_ = qqq.get_Hessenberg_form(True)
-
-print(qqq.round_to_tol())
-
-pr.disable()
-s = io.StringIO()
-sortby = 'cumulative'
-ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-ps.print_stats()
-print(s.getvalue())
-
-
-
-
-
+# print(qqq.get_dps())
 #
-# qqq = mpc("1+1j")
+# qqq.set_print_digits(10)
 #
 # print(qqq)
+#
+#
+# pr = cProfile.Profile()
+# pr.enable()
+#
+# qqq,_ = qqq.get_Hessenberg_form(True)
+#
+# print(qqq.round_to_tol())
+#
+# pr.disable()
+# s = io.StringIO()
+# sortby = 'cumulative'
+# ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+# ps.print_stats()
+# print(s.getvalue())
+#
+#
+#
+#
+#
+# #
+# # qqq = mpc("1+1j")
+# #
+# # print(qqq)
