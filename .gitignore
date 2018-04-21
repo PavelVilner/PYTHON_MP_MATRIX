@@ -1,4 +1,6 @@
-
-*.ini
-AUXILIARY/aux_functions.py
-AUXILIARY/aux_inner_functions.py
+# First, ignore everything
+*
+# Now, whitelist anything that's a directory
+!*/
+# And all the file types you're interested in.
+!*.py
