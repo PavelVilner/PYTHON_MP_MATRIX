@@ -2,7 +2,7 @@ import gmpy2 as gm
 from gmpy2 import const_pi as pi, mpfr as mpr, mpc
 from copy import deepcopy
 from aux_inner_functions import is_lowest_level, is_dict_callable, is_list_callable
-# from numpy import double
+from numpy import double
 
 
 class NUMERICAL_TYPES:

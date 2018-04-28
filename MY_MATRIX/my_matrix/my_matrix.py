@@ -703,10 +703,18 @@ class my_matrix:
             aux = gm.sqrt(aux)
             for keys in u.__data:
                 u.__data[keys] = u.__data[keys] / aux
+            aux = I.to_zeros()
+            for r in range(u.__N_rows):
+                for c in range(r,u.__N_rows):
+                    try:
+                       aux.__data[(r,c)] = mpr(2)*u.__data[(r,0)]*conj(u.__data[(c,0)])
+                       aux.__data[(c,r)] = mpr(2)*u.__data[(c,0)]*conj(u.__data[(r,0)])
+                    except KeyError:
+                        continue
             if calculate_Householder_matrix:
-                P = P - mpr(2)*u*(u.H()*P)
+                P = (I-aux)*P
             if calculate_Hessenberg_form:
-                M = M - mpr(2)*u*(u.H()*M)
+                M = (I-aux)*M
         if calculate_Hessenberg_form and calculate_Householder_matrix:
             return M, P
         if calculate_Hessenberg_form and not calculate_Householder_matrix:
@@ -829,8 +837,6 @@ class my_matrix:
         Q = local_copy(self).renormalize_cols()
         R = Q.H() * self
         return Q, R
-    
-    
         
     def __get_local_row_index(self, ind):
         return get_index(ind, self.__N_rows)
@@ -1070,6 +1076,12 @@ class my_matrix:
     @staticmethod
     def set_approximation_steps(value):
         my_matrix.__max_approximation_steps = value
+
+        
+
+                 
+    
+        
 
     
         
