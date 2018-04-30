@@ -1076,6 +1076,97 @@ class my_matrix:
     @staticmethod
     def set_approximation_steps(value):
         my_matrix.__max_approximation_steps = value
+        
+    @staticmethod
+    def simple_mult(A,B):
+        R = my_matrix(A.__N_rows, B.__N_cols)
+        for r in range(A.__N_rows):
+            for c in range(B.__N_cols):
+                R.__data[(r,c)] = mpr(0)
+                for k in range(A.__N_cols):
+                    try:
+                        R.__data[(r,c)] += A.__data[(r,k)]*B.__data[(k,c)]
+                    except KeyError:
+                        pass
+        return R
+    
+    @staticmethod
+    def recursive_mult(A,B, Lim = 10):
+        R = my_matrix(A.__N_rows, B.__N_cols)
+        if A.__N_rows <= Lim or A.__N_cols <= Lim or B.__N_cols <= Lim or \
+        not is_even(A.__N_rows) or not is_even(A.__N_cols) or not is_even(B.__N_cols):
+            return my_matrix.simple_mult(A,B)
+        Nr_A = int(A.__N_rows/2)
+        Nc_A = int(A.__N_cols/2)
+        Nr_B = int(B.__N_rows/2)
+        Nc_B = int(B.__N_cols/2)
+#        print(Nr_A)
+        A11 = my_matrix(Nr_A, Nc_A)
+        A12 = my_matrix(Nr_A, Nc_A)
+        A21 = my_matrix(Nr_A, Nc_A)
+        A22 = my_matrix(Nr_A, Nc_A)
+        B11 = my_matrix(Nr_B, Nc_B)
+        B12 = my_matrix(Nr_B, Nc_B)
+        B21 = my_matrix(Nr_B, Nc_B)
+        B22 = my_matrix(Nr_B, Nc_B)
+        for keys in A.__data:
+            if keys[0] < Nr_A and keys[1] < Nc_A:
+                A11.__data[(keys[0],keys[1])] = A.__data[keys]
+            elif keys[0] < Nr_A and keys[1] >= Nc_A:
+                A12.__data[(keys[0],keys[1]-Nc_A)] = A.__data[keys]
+            elif keys[0] >= Nr_A and keys[1] < Nc_A:
+                A21.__data[(keys[0]-Nr_A,keys[1])] = A.__data[keys]
+            else:
+                A22.__data[(keys[0]-Nr_A,keys[1]-Nc_A)] = A.__data[keys]
+        for keys in B.__data:
+            if keys[0] < Nr_B and keys[1] < Nc_B:
+                B11.__data[(keys[0],keys[1])] = B.__data[keys]
+            elif keys[0] < Nr_B and keys[1] >= Nc_B:
+                B12.__data[(keys[0],keys[1]-Nc_B)] = B.__data[keys]
+            elif keys[0] >= Nr_B and keys[1] < Nc_B:
+                B21.__data[(keys[0]-Nr_B,keys[1])] = B.__data[keys]
+            else:
+                B22.__data[(keys[0]-Nr_B,keys[1]-Nc_B)] = B.__data[keys]
+        M1 = my_matrix.recursive_mult(A11+A22,B11+B22,Lim)
+        M2 = my_matrix.recursive_mult(A21+A22,B11,    Lim)
+        M3 = my_matrix.recursive_mult(A11,B12-B22,    Lim)
+        M4 = my_matrix.recursive_mult(A22,B21-B11,    Lim)
+        M5 = my_matrix.recursive_mult(A11+A12,B22,    Lim)
+        M6 = my_matrix.recursive_mult(A21-A11,B11+B12,Lim)
+        M7 = my_matrix.recursive_mult(A12-A22,B21+B22,Lim)
+        R11 = M1+M4-M5+M7
+        R12 = M3+M5
+        R21 = M2 + M4
+        R22 = M1-M2+M3+M6
+        for r in range(A.__N_rows):
+            for c in range(B.__N_cols):
+                if r < Nr_A and c < Nc_B:
+                    try:
+                        R.__data[(r,c)] = R11.__data[(r,c)]
+                    except KeyError:
+                        pass
+                elif r < Nr_A and c >= Nc_B:
+                    try:
+                        R.__data[(r,c)] = R12.__data[(r,c-Nc_B)]
+                    except KeyError:
+                        pass
+                elif r >= Nr_A and c < Nc_B:
+                    try:
+                        R.__data[(r,c)] = R21.__data[(r-Nr_A,c)]
+                    except KeyError:
+                        pass
+                else:
+                    try:
+                        R.__data[(r,c)] = R22.__data[(r-Nr_A,c-Nc_B)]
+                    except KeyError:
+                        pass
+        return R
+
+        
+
+        
+        
+                        
 
         
 
